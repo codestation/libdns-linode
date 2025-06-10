@@ -1,9 +1,14 @@
+// Copyright 2025 codestation. All rights reserved.
+// Use of this source code is governed by a MIT-license
+// that can be found in the LICENSE file.
+
 // Package linode implements a DNS record management client compatible
 // with the libdns interfaces for Linode.
 package linode
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/libdns/libdns"
@@ -39,7 +44,7 @@ func (p *Provider) AppendRecords(ctx context.Context, zone string, records []lib
 	for _, record := range records {
 		newRecord, err := p.addDNSEntry(ctx, p.unFQDN(zone), record)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to add DNS record for %s: %w", record.RR().Name, err)
 		}
 		appendedRecords = append(appendedRecords, newRecord)
 	}
@@ -55,7 +60,7 @@ func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns
 	for _, record := range records {
 		setRecord, err := p.addOrUpdateDNSEntry(ctx, p.unFQDN(zone), record)
 		if err != nil {
-			return setRecords, err
+			return setRecords, fmt.Errorf("failed to set DNS record for %s: %w", record.RR().Name, err)
 		}
 		setRecords = append(setRecords, setRecord)
 	}

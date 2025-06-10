@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"os"
 	"time"
 
-	"github.com/codestation/libdns-linode"
 	"github.com/libdns/libdns"
+	"go.megpoid.dev/libdns-linode"
 )
 
 func main() {
@@ -23,43 +24,56 @@ func main() {
 	}
 	provider := linode.Provider{APIToken: token}
 
-	records, err := provider.GetRecords(context.TODO(), zone)
+	records := []libdns.Record{
+		linode.FromLibdnsRecord(libdns.Address{
+			Name: "test-ipv4",
+			TTL:  300 * time.Second,
+			IP:   netip.MustParseAddr("127.0.0.1"),
+		}, 0),
+		linode.FromLibdnsRecord(libdns.Address{
+			Name: "test-ipv6",
+			TTL:  300 * time.Second,
+			IP:   netip.MustParseAddr("::1"),
+		}, 0),
+		linode.FromLibdnsRecord(libdns.CNAME{
+			Name:   "test-cname",
+			TTL:    30 * time.Second,
+			Target: "example.com",
+		}, 0),
+		linode.FromLibdnsRecord(libdns.MX{
+			Name:       "test-mx",
+			TTL:        300 * time.Second,
+			Preference: 10,
+			Target:     "mail.example.com",
+		}, 0),
+		linode.FromLibdnsRecord(libdns.TXT{
+			Name: "test-txt",
+			TTL:  300 * time.Second,
+			Text: "Sample text",
+		}, 0),
+		linode.FromLibdnsRecord(libdns.SRV{
+			Name:      "test-srv",
+			TTL:       300 * time.Second,
+			Transport: "tcp",
+			Service:   "http",
+			Priority:  5,
+			Weight:    10,
+			Port:      8080,
+			Target:    "srv.example.com.",
+		}, 0),
+		linode.FromLibdnsRecord(libdns.CAA{
+			Name:  "test-caa",
+			TTL:   30 * time.Second,
+			Flags: 0,
+			Tag:   "issue",
+			Value: "letsencrypt.org",
+		}, 0),
+	}
+
+	_, err := provider.AppendRecords(context.TODO(), zone, records)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
-	}
-
-	testName := "libdns-test"
-	testId := ""
-	for _, record := range records {
-		fmt.Printf("%s (.%s): %s, %s\n", record.Name, zone, record.Value, record.Type)
-		if record.Name == testName {
-			testId = record.ID
-		}
-
-	}
-
-	if testId != "" {
-		fmt.Printf("Replacing entry for %s\n", testName)
-		_, err = provider.SetRecords(context.TODO(), zone, []libdns.Record{{
-			Type:  "TXT",
-			Name:  testName,
-			Value: fmt.Sprintf("Replacement test entry created by libdns %s", time.Now()),
-			TTL:   time.Duration(30) * time.Second,
-			ID:    testId,
-		}})
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err.Error())
-		}
 	} else {
-		fmt.Printf("Creating new entry for %s\n", testName)
-		_, err := provider.AppendRecords(context.TODO(), zone, []libdns.Record{{
-			Type:  "TXT",
-			Name:  testName,
-			Value: fmt.Sprintf("This is a test entry created by libdns %s", time.Now()),
-			TTL:   time.Duration(30) * time.Second,
-		}})
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err.Error())
-		}
+		fmt.Println("Added records")
 	}
 }

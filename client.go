@@ -1,3 +1,7 @@
+// Copyright 2025 codestation. All rights reserved.
+// Use of this source code is governed by a MIT-license
+// that can be found in the LICENSE file.
+
 package linode
 
 import (
@@ -5,10 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/libdns/libdns"
 	"github.com/linode/linodego"
@@ -79,13 +80,7 @@ func (p *Provider) getDNSEntries(ctx context.Context, zone string) ([]libdns.Rec
 	}
 
 	for _, entry := range domains {
-		record := libdns.Record{
-			Name:  entry.Name,
-			Value: entry.Target,
-			Type:  string(entry.Type),
-			TTL:   time.Duration(entry.TTLSec) * time.Second,
-			ID:    strconv.Itoa(entry.ID),
-		}
+		record := fromDomainRecord(entry)
 		records = append(records, record)
 	}
 
@@ -93,7 +88,12 @@ func (p *Provider) getDNSEntries(ctx context.Context, zone string) ([]libdns.Rec
 }
 
 func (p *Provider) addOrUpdateDNSEntry(ctx context.Context, zone string, record libdns.Record) (libdns.Record, error) {
-	if record.ID == "" {
+	recordId, err := getRecordId(record)
+	if err != nil {
+		return record, err
+	}
+
+	if recordId == 0 {
 		return p.addDNSEntry(ctx, zone, record)
 	} else {
 		return p.updateDNSEntry(ctx, p.unFQDN(zone), record)
@@ -114,20 +114,15 @@ func (p *Provider) addDNSEntry(ctx context.Context, zone string, record libdns.R
 		return record, err
 	}
 
-	createOpts := linodego.DomainRecordCreateOptions{
-		Name:   record.Name,
-		Target: record.Value,
-		Type:   linodego.DomainRecordType(record.Type),
-		TTLSec: int(record.TTL.Seconds()),
-	}
-
+	createOpts := toDomainRecordCreate(record)
 	rec, err := p.client.CreateDomainRecord(ctx, domainID, createOpts)
 	if err != nil {
 		return record, err
 	}
-	record.ID = strconv.Itoa(rec.ID)
 
-	return record, nil
+	r := FromLibdnsRecord(record, rec.ID)
+
+	return r, nil
 }
 
 func (p *Provider) updateDNSEntry(ctx context.Context, zone string, record libdns.Record) (libdns.Record, error) {
@@ -144,18 +139,12 @@ func (p *Provider) updateDNSEntry(ctx context.Context, zone string, record libdn
 		return record, err
 	}
 
-	recordID, err := strconv.Atoi(record.ID)
+	recordID, err := getRecordId(record)
 	if err != nil {
 		return record, err
 	}
 
-	updateOpts := linodego.DomainRecordUpdateOptions{
-		Name:   strings.Trim(strings.ReplaceAll(record.Name, zone, ""), "."),
-		Target: record.Value,
-		Type:   linodego.DomainRecordType(record.Type),
-		TTLSec: int(record.TTL.Seconds()),
-	}
-
+	updateOpts := toDomainRecordUpdate(record)
 	_, err = p.client.UpdateDomainRecord(ctx, domainID, recordID, updateOpts)
 	if err != nil {
 		return record, err
@@ -178,12 +167,12 @@ func (p *Provider) removeDNSEntry(ctx context.Context, zone string, record libdn
 		return record, err
 	}
 
-	id, err := strconv.Atoi(record.ID)
+	recordID, err := getRecordId(record)
 	if err != nil {
 		return record, err
 	}
 
-	err = p.client.DeleteDomainRecord(ctx, domainID, id)
+	err = p.client.DeleteDomainRecord(ctx, domainID, recordID)
 	if err != nil {
 		return record, err
 	}
