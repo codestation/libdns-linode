@@ -91,10 +91,7 @@ func (p *Provider) getDNSEntries(ctx context.Context, zone string) ([]libdns.Rec
 }
 
 func (p *Provider) addOrUpdateDNSEntry(ctx context.Context, zone string, record libdns.Record) (libdns.Record, error) {
-	recordId, err := getRecordId(record)
-	if err != nil {
-		return record, err
-	}
+	recordId := getRecordId(record)
 
 	if recordId == 0 {
 		return p.addDNSEntry(ctx, zone, record)
@@ -142,9 +139,9 @@ func (p *Provider) updateDNSEntry(ctx context.Context, zone string, record libdn
 		return record, err
 	}
 
-	recordID, err := getRecordId(record)
-	if err != nil {
-		return record, err
+	recordID := getRecordId(record)
+	if recordID == 0 {
+		return record, errors.New("record doesn't have an ID")
 	}
 
 	updateOpts := toDomainRecordUpdate(record)
@@ -170,9 +167,9 @@ func (p *Provider) removeDNSEntry(ctx context.Context, zone string, record libdn
 		return record, err
 	}
 
-	recordID, err := getRecordId(record)
-	if err != nil {
-		return record, err
+	recordID := getRecordId(record)
+	if recordID == 0 {
+		return record, errors.New("record doesn't have an ID")
 	}
 
 	err = p.client.DeleteDomainRecord(ctx, domainID, recordID)

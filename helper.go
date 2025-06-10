@@ -213,15 +213,11 @@ func toDomainRecordUpdate(record libdns.Record) linodego.DomainRecordUpdateOptio
 	return opts
 }
 
-func getRecordId(r libdns.Record) (int, error) {
+func getRecordId(r libdns.Record) int {
 	var id int
-	if vr, err := r.(Record); err {
+	if vr, ok := r.(Record); ok {
 		id = vr.ID
 	}
 
-	if id == 0 {
-		return 0, fmt.Errorf("record has no ID: %v", r)
-	}
-
-	return id, nil
+	return id
 }
