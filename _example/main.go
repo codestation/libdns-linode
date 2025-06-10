@@ -25,6 +25,11 @@ func main() {
 	provider := linode.Provider{APIToken: token}
 
 	records := []libdns.Record{
+		linode.FromLibdnsRecord(libdns.CNAME{
+			Name:   "test-cname",
+			TTL:    30 * time.Second,
+			Target: "@",
+		}, 0),
 		linode.FromLibdnsRecord(libdns.Address{
 			Name: "test-ipv4",
 			TTL:  300 * time.Second,
@@ -34,11 +39,6 @@ func main() {
 			Name: "test-ipv6",
 			TTL:  300 * time.Second,
 			IP:   netip.MustParseAddr("::1"),
-		}, 0),
-		linode.FromLibdnsRecord(libdns.CNAME{
-			Name:   "test-cname",
-			TTL:    30 * time.Second,
-			Target: "example.com",
 		}, 0),
 		linode.FromLibdnsRecord(libdns.MX{
 			Name:       "test-mx",

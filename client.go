@@ -80,7 +80,10 @@ func (p *Provider) getDNSEntries(ctx context.Context, zone string) ([]libdns.Rec
 	}
 
 	for _, entry := range domains {
-		record := fromDomainRecord(entry)
+		record, err := fromDomainRecord(entry)
+		if err != nil {
+			return nil, err
+		}
 		records = append(records, record)
 	}
 
@@ -114,7 +117,7 @@ func (p *Provider) addDNSEntry(ctx context.Context, zone string, record libdns.R
 		return record, err
 	}
 
-	createOpts := toDomainRecordCreate(record)
+	createOpts := toDomainRecordCreate(record, zone)
 	rec, err := p.client.CreateDomainRecord(ctx, domainID, createOpts)
 	if err != nil {
 		return record, err
