@@ -25,33 +25,33 @@ func main() {
 	provider := linode.Provider{APIToken: token}
 
 	records := []libdns.Record{
-		linode.FromLibdnsRecord(libdns.CNAME{
+		libdns.CNAME{
 			Name:   "test-cname",
 			TTL:    30 * time.Second,
 			Target: "@",
-		}, 0),
-		linode.FromLibdnsRecord(libdns.Address{
+		},
+		libdns.Address{
 			Name: "test-ipv4",
 			TTL:  300 * time.Second,
 			IP:   netip.MustParseAddr("127.0.0.1"),
-		}, 0),
-		linode.FromLibdnsRecord(libdns.Address{
+		},
+		libdns.Address{
 			Name: "test-ipv6",
 			TTL:  300 * time.Second,
 			IP:   netip.MustParseAddr("::1"),
-		}, 0),
-		linode.FromLibdnsRecord(libdns.MX{
+		},
+		libdns.MX{
 			Name:       "test-mx",
 			TTL:        300 * time.Second,
 			Preference: 10,
 			Target:     "mail.example.com",
-		}, 0),
-		linode.FromLibdnsRecord(libdns.TXT{
+		},
+		libdns.TXT{
 			Name: "test-txt",
 			TTL:  300 * time.Second,
 			Text: "Sample text",
-		}, 0),
-		linode.FromLibdnsRecord(libdns.SRV{
+		},
+		libdns.SRV{
 			Name:      "test-srv",
 			TTL:       300 * time.Second,
 			Transport: "tcp",
@@ -60,14 +60,14 @@ func main() {
 			Weight:    10,
 			Port:      8080,
 			Target:    "srv.example.com.",
-		}, 0),
-		linode.FromLibdnsRecord(libdns.CAA{
+		},
+		libdns.CAA{
 			Name:  "test-caa",
 			TTL:   30 * time.Second,
 			Flags: 0,
 			Tag:   "issue",
 			Value: "letsencrypt.org",
-		}, 0),
+		},
 	}
 
 	_, err := provider.AppendRecords(context.TODO(), zone, records)
